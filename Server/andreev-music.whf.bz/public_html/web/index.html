@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Музыкальный портал</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            position: relative;
+        }
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 5px;  /* Уменьшаем padding для уменьшения высоты */
+            height: 40px;  /* Явно задаем высоту */
+            text-align: center;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            display: flex;  /* Добавлено для центрирования */
+            justify-content: center;  /* Центрирование по горизонтали */
+            align-items: center;  /* Центрирование по вертикали */
+        }
+
+
+         #trackList {
+            list-style-type: none;
+            padding: 0;
+            margin: 20px;
+            padding-bottom: 60px; /* Добавлено, чтобы нижний блок не перекрывал список */
+            padding-top: 35px;
+        }
+        #trackList li {
+            background-color: white;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center; /* Обновлено, чтобы элементы выравнивались по центру по вертикали */
+        }
+        .play-pause {
+            background-color: rgba(255, 255, 255, 0);
+        }
+        .play-pause:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .icon {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            margin-right: 10px; /* Добавлено для отступа между иконкой и текстом */
+        }
+        #currentTrackInfo {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 42px;
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        #currentTrackInfo .track-controls {
+            display: flex;
+            align-items: center;
+        }
+        #currentTrackInfo .track-controls img {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            margin: 0 10px;
+        }
+        #currentTrackInfo .track-info {
+            flex: 1;
+            text-align: left;
+            margin-left: 10px;
+        }
+        #currentTrackInfo .download {
+            margin-left: auto;
+            margin-right: 20px;
+        }
+        #currentTrackInfo .download img {
+            width: 24px;
+            height: 24px;
+        }
+
+           #seekBarContainer {
+        position: fixed;
+        bottom: 55px;  /* Расположение над блоком текущей песни */
+        width: 99%;
+        background-color: #e0e0e0;
+        padding: 5px;
+    }
+    #seekBar {
+        width: 97%;
+        -webkit-appearance: none;
+        appearance: none;
+        height: 5px;
+        background: #2196F3;
+        outline: none;
+        opacity: 0.7;
+        transition: opacity .2s;
+    }
+    #seekBar::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 15px;
+        height: 15px;
+        background: #2196F3;
+        cursor: pointer;
+        border-radius: 50%;
+    }
+    #seekBar::-moz-range-thumb {
+        width: 15px;
+        height: 15px;
+        background: #2196F3;
+        cursor: pointer;
+        border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Музыкальный портал</h1>
+    </header>
+    <ul id="trackList">
+        <!-- Здесь будут отображаться треки -->
+    </ul>
+
+    <!-- Полоса воспроизведения -->
+    <div id="seekBarContainer">
+        <input type="range" id="seekBar" value="0" max="100">
+    </div>
+    
+    <!-- Блок текущей песни -->
+    <div id="currentTrackInfo">
+        <div class="track-controls">
+            <img src="prevIcon.png" id="prev-track" alt="Previous">
+            <img src="playIcon.png" id="play-pause-track" alt="Play">
+            <img src="nextIcon.png" id="next-track" alt="Next">
+        </div>
+        <div class="track-info" id="track-info">
+            <span id="currentTrackName"></span>
+        </div>
+        <div class="download">
+            <a id="download-link" href="#" download>
+                <img src="downloadIcon.png" alt="Download">
+            </a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('tracks.php')
+                .then(response => response.json())
+                .then(tracks => {
+                    const trackList = document.getElementById('trackList');
+                    tracks.forEach((track, index) => {
+                        const listItem = document.createElement('li');
+                        listItem.innerHTML = `
+                            <img src="playIcon.png" class="icon play-pause" data-index="${index}" alt="Play">
+                            <span>${track.name}</span>
+                            <audio id="audio-${index}">
+                                <source src="${track.file}" type="audio/mpeg">
+                                Ваш браузер не поддерживает аудиоэлемент.
+                            </audio>
+                        `;
+                        trackList.appendChild(listItem);
+                    });
+
+                    const audioElements = document.querySelectorAll('audio');
+                    let currentTrack = 0;
+                    let isPlaying = false;
+
+                    function pauseAllTracks() {
+                        audioElements.forEach(audio => {
+                            audio.pause();
+                            audio.currentTime = 0;
+                        });
+                    }
+
+                    function updatePlayPauseIcons() {
+                        document.querySelectorAll('.play-pause').forEach(icon => {
+                            const index = icon.getAttribute('data-index');
+                            const audio = document.getElementById(`audio-${index}`);
+                            if (audio.paused) {
+                                icon.src = 'playIcon.png';
+                                icon.alt = 'Play';
+                            } else {
+                                icon.src = 'stopIcon.png';
+                                icon.alt = 'Stop';
+                            }
+                        });
+
+                        const currentAudio = audioElements[currentTrack];
+                        document.getElementById('play-pause-track').src = currentAudio.paused ? 'playIcon.png' : 'stopIcon.png';
+                        document.getElementById('currentTrackName').textContent = tracks[currentTrack].name;
+                        document.getElementById('download-link').href = `../music/${tracks[currentTrack].file}`; // Изменен путь к файлам музыки
+                    }
+
+                    document.querySelectorAll('.play-pause').forEach(icon => {
+                        icon.addEventListener('click', function() {
+                            const index = this.getAttribute('data-index');
+                            const audio = document.getElementById(`audio-${index}`);
+                            if (audio.paused) {
+                                pauseAllTracks();
+                                audio.play();
+                                currentTrack = index;
+                                isPlaying = true;
+                            } else {
+                                audio.pause();
+                                isPlaying = false;
+                            }
+                            updatePlayPauseIcons();
+                        });
+                    });
+
+                    document.getElementById('prev-track').addEventListener('click', function() {
+                        if (currentTrack > 0) {
+                            pauseAllTracks();
+                            currentTrack--;
+                            audioElements[currentTrack].play();
+                            isPlaying = true;
+                            updatePlayPauseIcons();
+                        }
+                    });
+
+                    document.getElementById('play-pause-track').addEventListener('click', function() {
+                        const audio = audioElements[currentTrack];
+                        if (audio.paused) {
+                            audio.play();
+                            isPlaying = true;
+                        } else {
+                            audio.pause();
+                            isPlaying = false;
+                        }
+                        updatePlayPauseIcons();
+                    });
+
+                    document.getElementById('next-track').addEventListener('click', function() {
+                        if (currentTrack < audioElements.length - 1) {
+                            pauseAllTracks();
+                            currentTrack++;
+                            audioElements[currentTrack].play();
+                            isPlaying = true;
+                            updatePlayPauseIcons();
+                        }
+                    });
+
+                    const seekBar = document.getElementById('seekBar');
+
+                    // Обновление позиции полосы воспроизведения
+                    function updateSeekBar() {
+                        if (audioElements[currentTrack]) {
+                            const audio = audioElements[currentTrack];
+                            seekBar.value = (audio.currentTime / audio.duration) * 100;
+                        }
+                    }
+
+                    // Обработчик перемотки
+                    seekBar.addEventListener('input', function() {
+                        if (audioElements[currentTrack]) {
+                            const audio = audioElements[currentTrack];
+                            audio.currentTime = (seekBar.value / 100) * audio.duration;
+                        }
+                    });
+
+                    // Обновление полосы воспроизведения каждую секунду
+                    setInterval(updateSeekBar, 1000);
+
+
+                    // Обновление иконок после загрузки треков
+                    updatePlayPauseIcons();
+                })
+                .catch(error => console.error('Error fetching tracks:', error));
+        });
+    </script>
+</body>
+</html>

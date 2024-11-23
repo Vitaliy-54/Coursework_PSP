@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Логи сервера</title>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .log-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: 0 auto;
+            overflow-y: auto;
+            height: 80vh;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="log-container">
+        <h1>Логи сервера</h1>
+        <p>Выберите промежуток времени для показа логов:</p>
+        <input type="text" name="daterange" />
+        <pre id="logContent"></pre>
+    </div>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(function() {
+            $('input[name="daterange"]').daterangepicker({
+                locale: {
+                    format: 'DD-MM-YYYY'
+                },
+                opens: 'left'
+            }, function(start, end, label) {
+                fetchLogs(start.format('DD-MM-YYYY'), end.format('DD-MM-YYYY'));
+            });
+        });
+
+        function fetchLogs(startDate, endDate) {
+            $.ajax({
+                url: 'fetch_logs.php',
+                method: 'GET',
+                data: {
+                    start: startDate,
+                    end: endDate
+                },
+                success: function(data) {
+                    $('#logContent').text(data);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
